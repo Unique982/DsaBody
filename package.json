@@ -8,7 +8,13 @@
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
-  "keywords": ["nodejs", "express", "mongodb", "backend", "dsa-sathi"],
+  "keywords": [
+    "nodejs",
+    "express",
+    "mongodb",
+    "backend",
+    "dsa-sathi"
+  ],
   "author": "Your Name",
   "license": "ISC",
   "dependencies": {
@@ -17,6 +23,7 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.0.0"
   },

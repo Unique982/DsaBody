@@ -1,147 +1,265 @@
 import User from "../database/model/userModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library"; // Import Google Library
 
+// Initialize Google Client
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Helper to generate JWT Token
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
+};
+
+// ==========================================
+// 1. REGISTER / SIGNUP
+// ==========================================
 export const signup = async (req, res) => {
   try {
-    const { fullname, email, password } = req.body;
+    const { fullname, email, password, role } = req.body;
 
     if (!fullname || !email || !password) {
       return res.status(400).json({
-        message: "All Fields Required",
         success: false,
+        message: "All fields (fullname, email, password) are required",
       });
     }
 
-    const user = await User.findOne({ email });
-
-    if (user) {
+    const userExists = await User.findOne({ email });
+    if (userExists) {
       return res.status(400).json({
-        message: "User with email already exists with this email",
         success: false,
+        message: "User with this email already exists",
       });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const userRole = role === "mentor" ? "mentor" : "student";
 
-    await User.create({
+    const user = await User.create({
       fullname,
       email,
       password: hashedPassword,
+      role: userRole,
     });
 
-    return res.status(201).json({
-      message: "User created successfully!!",
-      success: true,
-    });
+    const token = generateToken(user._id);
+
+    res
+      .status(201)
+      .cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      })
+      .json({
+        success: true,
+        message: "Account created successfully!",
+        user: {
+          _id: user._id,
+          fullname: user.fullname,
+          email: user.email,
+          role: user.role,
+          avatar: user.avatar,
+          isPremium: user.isPremium,
+        },
+      });
   } catch (error) {
-    console.log(error);
+    console.error("Signup Error:", error);
+    res.status(500).json({ success: false, message: "Server Error during Signup" });
   }
 };
 
+// ==========================================
+// 2. LOGIN
+// ==========================================
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
-        message: "Fields cannot be left empty!!",
         success: false,
+        message: "Email and Password are required",
       });
     }
 
     const user = await User.findOne({ email });
-
     if (!user) {
       return res.status(400).json({
-        message: "Invalid User",
         success: false,
+        message: "Invalid Email or Password",
       });
     }
 
     const isPasswordMatched = await bcrypt.compare(password, user.password);
-
     if (!isPasswordMatched) {
       return res.status(400).json({
-        message: "Incorrect Email or Password",
         success: false,
+        message: "Invalid Email or Password",
       });
     }
 
-    const tokenData = {
-      userID: user._id,
-    };
+    const token = generateToken(user._id);
 
-    const token = await jwt.sign(tokenData, process.env.JWT_SECRET_KEY, {
-      expiresIn: "1d",
-    });
-
-    const loggedInUser = {
-      _id: user._id,
-      fullname: user.fullname,
-      email: user.email,
-      isPremium: user.isPremium
-    };
-
-    return res
-      .status(201)
+    res
+      .status(200)
       .cookie("token", token, {
-        maxAge: 1 * 24 * 60 * 60 * 1000,
         httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
       })
       .json({
-        message: `Welcome Back ${user.fullname}!!`,
         success: true,
-        loggedInUser,
+        message: `Welcome back, ${user.fullname}!`,
+        user: {
+          _id: user._id,
+          fullname: user.fullname,
+          email: user.email,
+          role: user.role,
+          avatar: user.avatar,
+          isPremium: user.isPremium,
+          walletBalance: user.walletBalance || 0,
+        },
       });
   } catch (error) {
-    console.log(error);
+    console.error("Login Error:", error);
+    res.status(500).json({ success: false, message: "Server Error during Login" });
   }
 };
 
-export const logout = async (req, res) => {
+// ==========================================
+// 3. GOOGLE LOGIN (New Feature)
+// ==========================================
+export const googleLogin = async (req, res) => {
   try {
-    return res.status(201).cookie("token", "", { maxAge: 0 }).json({
-      message: "Logged out successfully!!",
-      success: true,
+    // The frontend sends the 'credential' (ID Token) from Google
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({ success: false, message: "Google credential missing" });
+    }
+
+    // Verify the Token with Google
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID, // Add this to your .env
     });
-  } catch (error) {
-    console.log(error);
-  }
-};
 
-export const buyMembership = async (req, res) => {
-  try {
-    const { id } = req.body;
+    const payload = ticket.getPayload();
+    const { email, name, picture } = payload;
 
-    const user = await User.findById(id);
+    // Check if user already exists
+    let user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(400).json({
-        message: "Invalid User",
-        success: false,
+      // Create new user (Auto-Signup)
+      // Since password is required, we generate a secure random password
+      const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      user = await User.create({
+        fullname: name,
+        email,
+        password: hashedPassword,
+        avatar: picture,
+        role: "student", // Default role for Google Login
       });
     }
 
-    user.isPremium = true;
-    await user.save();
+    // Generate Token and Log them in
+    const token = generateToken(user._id);
 
-    return res.status(200).json({
-      message: "Membership upgraded successfully",
+    res
+      .status(200)
+      .cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      })
+      .json({
+        success: true,
+        message: `Welcome via Google, ${user.fullname}!`,
+        user: {
+          _id: user._id,
+          fullname: user.fullname,
+          email: user.email,
+          role: user.role,
+          avatar: user.avatar || picture,
+          isPremium: user.isPremium,
+          walletBalance: user.walletBalance || 0,
+        },
+      });
+
+  } catch (error) {
+    console.error("Google Login Error:", error);
+    res.status(500).json({ success: false, message: "Google Login Failed" });
+  }
+};
+
+// ==========================================
+// 4. LOGOUT
+// ==========================================
+export const logout = async (req, res) => {
+  try {
+    res
+      .status(200)
+      .cookie("token", "", {
+        httpOnly: true,
+        expires: new Date(0),
+      })
+      .json({
+        success: true,
+        message: "Logged out successfully",
+      });
+  } catch (error) {
+    console.error("Logout Error:", error);
+    res.status(500).json({ success: false, message: "Server Error during Logout" });
+  }
+};
+
+// ==========================================
+// 5. GET CURRENT USER (ME)
+// ==========================================
+export const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("-password");
+    res.status(200).json({
       success: true,
       user,
     });
   } catch (error) {
-    console.error("Error upgrading membership:", error);
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false,
-    });
+    console.error("GetMe Error:", error);
+    res.status(500).json({ success: false, message: "Server Error fetching profile" });
   }
 };
 
-// Get current user
- export const getMe = async (req, res) => {
-    res.json({ id: req.user._id, fullname: req.user.fullname, email: req.user.email, role: req.user.role });
+// ==========================================
+// 6. BUY MEMBERSHIP
+// ==========================================
+export const buyMembership = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    if (user.isPremium) return res.status(400).json({ success: false, message: "Already Premium" });
+
+    user.isPremium = true;
+    user.membershipExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Membership upgraded successfully!",
+      user: { fullname: user.fullname, isPremium: user.isPremium }
+    });
+  } catch (error) {
+    console.error("Membership Upgrade Error:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
 };
