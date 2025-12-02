@@ -4,7 +4,18 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { registerSchameType } from "@/lib/schemas/authSchema";
+import { registerSchame } from "@/lib/schemas/authSchema";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+
 import {
   Card,
   CardContent,
@@ -12,10 +23,32 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { useAppDispatch } from "@/lib/store/hooks";
+import { userRegister } from "@/lib/store/auth/authSlice";
 
 export default function RegisterPage() {
-  const [showPassword, setShowPassword] = useState(false);
   const [showCPassword, setShowCPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const dispatch = useAppDispatch();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<registerSchameType>({
+    resolver: zodResolver(registerSchame),
+  });
+
+  const onSubmit = async (data: registerSchameType) => {
+    const result: any = await dispatch(userRegister(data));
+
+    if (result?.payload?.success) {
+      alert("Register Successfully!");
+    } else {
+      alert(result?.payload?.message || "Register Failed!");
+    }
+  };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-green-50 to-white flex flex-col items-center px-4 py-6">
@@ -77,7 +110,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Form */}
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div className="flex flex-col sm:flex-row gap-3">
               {/* First Name */}
               <div className="w-full sm:w-1/2">
@@ -88,7 +121,13 @@ export default function RegisterPage() {
                   type="text"
                   placeholder="First Name"
                   className="mt-1 bg-gray-100 border-gray-300"
+                  {...register("firstname")}
                 />
+                {errors.firstname && (
+                  <p className="text-red-500 text-sm">
+                    {errors.firstname.message}
+                  </p>
+                )}
               </div>
 
               {/* Last Name */}
@@ -100,7 +139,13 @@ export default function RegisterPage() {
                   type="text"
                   placeholder="Last Name"
                   className="mt-1 bg-gray-100 border-gray-300"
+                  {...register("lastname")}
                 />
+                {errors.lastname && (
+                  <p className="text-red-500 text-sm">
+                    {errors.lastname.message}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -113,8 +158,30 @@ export default function RegisterPage() {
                 type="email"
                 placeholder="you@example.com"
                 className="mt-1 bg-gray-100 border-gray-300"
+                {...register("email")}
               />
+              {errors.email && (
+                <p className="text-red-500 text-sm">{errors.email.message}</p>
+              )}
             </div>
+            {/* <div>
+              <Label className="text-sm font-medium text-gray-700">
+                Country
+              </Label>
+              <Select onValueChange={(value) => setValue("role", value)}>
+                <SelectTrigger className="mt-1 bg-gray-100 border-gray-300">
+                  <SelectValue placeholder="Select your country" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mentor">Mentor</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {errors.role && (
+                <p className="text-red-500 text-sm">{errors.role.message}</p>
+              )}
+            </div> */}
 
             {/* Password */}
             <div>
@@ -127,6 +194,7 @@ export default function RegisterPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter password"
                   className="w-full bg-transparent px-2 py-2 text-sm outline-none"
+                  {...register("password")}
                 />
                 <button
                   type="button"
@@ -140,6 +208,12 @@ export default function RegisterPage() {
                   )}
                 </button>
               </div>
+
+              {errors.password && (
+                <p className="text-red-500 text-sm">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             {/* Confirm Password */}
@@ -153,6 +227,7 @@ export default function RegisterPage() {
                   type={showCPassword ? "text" : "password"}
                   placeholder="Confirm password"
                   className="w-full bg-transparent px-2 py-2 text-sm outline-none"
+                  {...register("confirmPassword")}
                 />
                 <button
                   type="button"
@@ -166,6 +241,12 @@ export default function RegisterPage() {
                   )}
                 </button>
               </div>
+
+              {errors.confirmPassword && (
+                <p className="text-red-500 text-sm">
+                  {errors.confirmPassword.message}
+                </p>
+              )}
             </div>
 
             {/* Terms */}

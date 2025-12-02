@@ -11,8 +11,8 @@ export const loginSchame = z.object({
 export const registerSchame = z
   .object({
     email: z.string().email("Invalid email address"),
-    firstName: z.string().min(1, "First name must be at leat 6 characters"),
-    lastName: z.string().min(1, "Last name is requred"),
+    firstname: z.string().min(1, "First name must be at leat 6 characters"),
+    lastname: z.string().min(1, "Last name is requred"),
     password: z
       .string()
       .min(6, "Password must be at least 6 characters")
@@ -24,5 +24,5 @@ export const registerSchame = z
     message: "Passwords do not match",
   });
 
-export type loginSchame = z.infer<typeof loginSchame>;
-export type registerSchame = z.infer<typeof registerSchame>;
+export type loginSchameType = z.infer<typeof loginSchame>;
+export type registerSchameType = z.infer<typeof registerSchame>;

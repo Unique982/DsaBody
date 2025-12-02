@@ -9,19 +9,23 @@ export default function Navbar() {
         <a href="#" className="text-gray-700 hover:text-blue-600">
           About
         </a>
+        <a href="/course" className="text-gray-700 hover:text-blue-600">
+          Course
+        </a>
         <a href="#" className="text-gray-700 hover:text-blue-600">
           Service
         </a>
         <a href="#" className="text-gray-700 hover:text-blue-600">
-          Contact Us
+          Blog
         </a>
+
         <a href="#" className="text-gray-700 hover:text-blue-600">
           FAQ
         </a>
       </div>
       <div className="space-x-4">
         <a
-          href="#"
+          href="/auth/login"
           className="text-gray-700 hover:text-blue-600 hidden sm:inline"
         >
           Login
