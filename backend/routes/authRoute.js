@@ -1,11 +1,16 @@
 import express from "express";
-import { signup, login, logout, buyMembership } from "../controllers/authController.js";
+import { register, login, logout, getMe, buyMembership } from "../controllers/authController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/signup", signup);
+// Public routes
+router.post("/register", register);
 router.post("/login", login);
 router.post("/logout", logout);
-router.post("/membership/buy", buyMembership);
+
+// Protected routes
+router.get("/me", protect, getMe);
+router.post("/membership/buy", protect, buyMembership);
 
 export default router;

@@ -26,6 +26,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useAppDispatch } from "@/lib/store/hooks";
 import { userRegister } from "@/lib/store/auth/authSlice";
+import toast from "react-hot-toast";
 
 export default function RegisterPage() {
   const [showCPassword, setShowCPassword] = useState(false);
@@ -40,13 +41,14 @@ export default function RegisterPage() {
     resolver: zodResolver(registerSchame),
   });
 
-  const onSubmit = async (data: registerSchameType) => {
+  const onSubmit = async (data: any) => {
     const result: any = await dispatch(userRegister(data));
 
-    if (result?.payload?.success) {
-      alert("Register Successfully!");
+    if (result.success) {
+      toast.success("Registration Successful! Please login.");
+      setTimeout(() => (window.location.href = "/auth/login"), 1200);
     } else {
-      alert(result?.payload?.message || "Register Failed!");
+      toast.error(result.message || "Registration Failed!");
     }
   };
 

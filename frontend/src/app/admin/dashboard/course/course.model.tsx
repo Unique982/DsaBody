@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -227,23 +227,46 @@ export function AddCourseDialog({ onAddCourse }: AddCourseDialogProps) {
             </Select>
           </div>
 
-          {/* YouTube URL */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="youtubeUrl"
-              className="text-sm font-medium text-foreground"
-            >
-              YouTube URL
-            </Label>
-            <Input
-              id="youtubeUrl"
-              name="youtubeUrl"
-              type="text"
-              placeholder="Enter YouTube URL"
-              value={formData.youtubeUrl}
-              onChange={handleInputChange}
-              className="h-10 border-border"
-            />
+          {/* Thumbnail */}
+          <div>
+            <Label>Thumbnail URL</Label>
+            <Input name="thumbnail" />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <Label>Tags</Label>
+
+            <div className="flex gap-2 items-center mb-1">
+              <Input name="tag" />
+              <Button type="button" variant="outline">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <Button type="button" className="mt-1">
+              Add Tag
+            </Button>
+          </div>
+
+          {/* Lessons */}
+          <div>
+            <Label>Lessons</Label>
+
+            <div className="space-y-2 border p-2 rounded mb-2">
+              <Input placeholder="Lesson Title" name="title" required />
+              <Input placeholder="Lesson Content" name="content" />
+              <Input
+                placeholder="Duration (min)"
+                type="number"
+                name="duration"
+              />
+              <Button type="button" variant="outline">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <Button type="button">Add Lesson</Button>
           </div>
 
           {/* Actions */}

@@ -24,7 +24,14 @@ interface TopHeaderProps {
 
 export default function TopHeader({ onMenuClick }: TopHeaderProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const dispatch = useAppDispatch();
+  const router = useRouter();
 
+  const handleLogout = () => {
+    dispatch(logout());
+    toast.success("Logged out successfully!");
+    router.push("/auth/login");
+  };
   const notifications = [
     {
       id: 1,
@@ -156,7 +163,10 @@ export default function TopHeader({ onMenuClick }: TopHeaderProps) {
                 <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer gap-2 text-destructive">
+              <DropdownMenuItem
+                className="cursor-pointer gap-2 text-destructive"
+                onClick={handleLogout}
+              >
                 <LogOut className="h-4 w-4" />
                 <span>Logout</span>
               </DropdownMenuItem>
@@ -169,3 +179,7 @@ export default function TopHeader({ onMenuClick }: TopHeaderProps) {
 }
 
 import { cn } from "@/lib/utils";
+import { useAppDispatch } from "@/lib/store/hooks";
+import { useRouter } from "next/navigation";
+import { logout } from "@/lib/store/auth/authSlice";
+import toast from "react-hot-toast";

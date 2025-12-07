@@ -1,7 +1,10 @@
 "use client";
 
 import { Globe, Linkedin, Github, Twitter } from "lucide-react";
-
+interface SocialLinkProps {
+  href: string;
+  icon: React.ElementType;
+}
 // 1. Data Refactoring: Easier to manage content
 const teamMembers = [
   {
@@ -94,28 +97,16 @@ export default function TeamSection() {
               {/* Social Icons */}
               <div className="flex justify-center gap-4">
                 {member.socials.website && (
-                  <SocialLink
-                    href={member.socials.website}
-                    icon={<Globe size={18} />}
-                  />
+                  <SocialLink href={member.socials.website} icon={Globe} />
                 )}
                 {member.socials.linkedin && (
-                  <SocialLink
-                    href={member.socials.linkedin}
-                    icon={<Linkedin size={18} />}
-                  />
+                  <SocialLink href={member.socials.linkedin} icon={Linkedin} />
                 )}
                 {member.socials.twitter && (
-                  <SocialLink
-                    href={member.socials.twitter}
-                    icon={<Twitter size={18} />}
-                  />
+                  <SocialLink href={member.socials.twitter} icon={Twitter} />
                 )}
                 {member.socials.github && (
-                  <SocialLink
-                    href={member.socials.github}
-                    icon={<Github size={18} />}
-                  />
+                  <SocialLink href={member.socials.github} icon={Github} />
                 )}
               </div>
             </div>
@@ -127,13 +118,15 @@ export default function TeamSection() {
 }
 
 // Sub-component for Social Links to keep code clean
-function SocialLink({ href, icon }) {
+function SocialLink({ href, icon: Icon }: SocialLinkProps) {
   return (
     <a
       href={href}
-      className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-gradient-to-r hover:from-blue-500 hover:to-indigo-600 transition-all duration-300 shadow-sm hover:shadow-md"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-gray-500 hover:text-blue-600 transition-colors"
     >
-      {icon}
+      <Icon className="w-6 h-6" />
     </a>
   );
 }

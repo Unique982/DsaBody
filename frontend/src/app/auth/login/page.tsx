@@ -21,6 +21,7 @@ import { userLogin } from "@/lib/store/auth/authSlice";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Label } from "@radix-ui/react-label";
+import toast from "react-hot-toast";
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,13 +36,14 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchame),
   });
 
-  const onSubmit = async (data: loginSchameType) => {
+  const onSubmit = async (data: any) => {
     const result: any = await dispatch(userLogin(data));
 
-    if (result?.payload?.success) {
-      alert("Login Successfully!");
+    if (result.success) {
+      toast.success("Login Successful! Redirecting...");
+      setTimeout(() => (window.location.href = "/admin/dashboard"), 1200);
     } else {
-      alert(result?.payload?.message || "Login Failed!");
+      toast.error(result.message || "Login Failed!");
     }
   };
   return (

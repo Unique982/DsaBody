@@ -1,84 +1,71 @@
-import User from "../Database/models/userModel.js";
-import bcrypt from "bcrypt";
-import { generateToken } from "../middleware/authMiddleware.js";
+import User from "../database/model/userModel.js";
+import { Course } from "../database/model/courseModel.js";
+import { Payment } from "../database/model/paymentModel.js";
 
-// =============================
-// REGISTER ADMIN
-// =============================
-export const registerAdmin = async (req, res) => {
-  const { fullname, email, password } = req.body;
-
+// ============================
+// 1. DASHBOARD STATS
+// ============================
+export const getDashboardStats = async (req, res) => {
   try {
-    let user = await User.findOne({ email });
+    const totalUsers = await User.countDocuments();
+    const totalMentors = await User.countDocuments({ role: "mentor" });
+    const totalStudents = await User.countDocuments({ role: "student" });
+    const totalCourses = await Course.countDocuments();
 
-    if (user) {
-      return res
-        .status(400)
-        .json({ message: "Email already exists (user/admin)." });
-    }
+    const revenueData = await Payment.aggregate([
+      { $match: { status: "completed" } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Fetch student progress summary
+    const students = await User.find({ role: "student" }).select(
+      "firstname lastname progressSummary isPremium"
+    );
 
-    user = await User.create({
-      fullname,
-      email,
-      password: hashedPassword,
-      role: "admin",
-    });
-
-    res.status(201).json({
-      message: "Admin registered successfully",
-      _id: user._id,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user._id),
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalUsers,
+        totalMentors,
+        totalStudents,
+        totalCourses,
+        revenue: revenueData[0]?.total || 0,
+        students,
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error during admin registration" });
+    console.error("Dashboard Error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// =============================
-// LOGIN ADMIN
-// =============================
-export const loginAdmin = async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-
-    if (!user || user.role !== "admin") {
-      return res.status(401).json({
-        message: "Invalid admin credentials",
-      });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    res.json({
-      message: "Admin logged in successfully",
-      _id: user._id,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user._id),
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server error during admin login" });
-  }
-};
-
-// =============================
-// GET ALL USERS (Admin Only)
-// =============================
+// ============================
+// 2. GET ALL USERS
+// ============================
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
-    res.status(200).json(users);
+    res.status(200).json({ success: true, users });
   } catch (error) {
-    res.status(500).json({ message: "Server error fetching users" });
+    console.error("Get Users Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ============================
+// 3. UPDATE USER ROLE
+// ============================
+export const updateUserRole = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role: req.body.role },
+      { new: true }
+    ).select("-password");
+
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error("Update Role Error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

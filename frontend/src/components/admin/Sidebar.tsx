@@ -10,6 +10,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { useAppDispatch } from "@/lib/store/hooks";
+import { logout } from "@/lib/store/auth/authSlice";
+import toast from "react-hot-toast";
 
 interface SidebarProps {
   open: boolean;
@@ -25,7 +29,14 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     { icon: BarChart3, label: "Student", href: "/admin/dashboard/student" },
     { icon: Settings, label: "Course", href: "/admin/dashboard/course" },
   ];
+  const dispatch = useAppDispatch();
+  const router = useRouter();
 
+  const handleLogout = () => {
+    dispatch(logout());
+    toast.success("Logged out successfully!");
+    router.push("/auth/login");
+  };
   return (
     <>
       {/* Mobile Overlay */}
@@ -85,7 +96,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
           {/* Footer */}
           <div className="border-t border-sidebar-border px-3 py-4">
-            <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+            <button
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              onClick={handleLogout}
+            >
               <LogOut className="h-5 w-5 shrink-0" />
               <span>Logout</span>
             </button>

@@ -10,7 +10,11 @@ import {
   Laptop,
   Brain,
 } from "lucide-react";
-
+interface ServiceCardProps {
+  title: string;
+  desc: string;
+  Icon: React.ElementType;
+}
 export default function ServicesSection() {
   return (
     <section className="w-full bg-[#f7faff] py-20">
@@ -92,7 +96,7 @@ export default function ServicesSection() {
   );
 }
 
-function ServiceCard({ title, desc, Icon }) {
+function ServiceCard({ title, desc, Icon }: ServiceCardProps) {
   return (
     <div className="p-6 bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-xl transition-all hover:-translate-y-1 group">
       <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all">

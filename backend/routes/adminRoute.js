@@ -1,15 +1,14 @@
 import express from "express";
-// import { registerAdmin, loginAdmin, getAllUsers } from "../Controller/adminController.js";
-//import { protect } from "../middleware/authMiddleware.js";
-//import { checkRole } from "../middleware/roleMiddleware.js";
-import { registerAdmin, loginAdmin, getAllUsers } from "../controllers/adminController.js";
-import { protect } from "../middleware/authMiddleware.js";
-import { checkRole } from "../middleware/roleMiddleware.js";
+import { getDashboardStats, getAllUsers, updateUserRole } from "../controllers/adminController.js";
+import { protect, authorize } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/register", registerAdmin);
-router.post("/login", loginAdmin);
-router.get("/users", protect, checkRole("admin"), getAllUsers);
+// Protect all admin routes
+router.use(protect, authorize("admin"));
+
+router.get("/dashboard", getDashboardStats);
+router.get("/users", getAllUsers);
+router.put("/users/:id/role", updateUserRole);
 
 export default router;

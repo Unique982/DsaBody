@@ -2,146 +2,178 @@ import User from "../database/model/userModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-export const signup = async (req, res) => {
+// Generate JWT Token
+const generateToken = (id) =>
+  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+
+// ============================
+// 1. REGISTER (Student / Mentor / Admin)
+// ============================
+export const register = async (req, res) => {
   try {
-    const { fullname, email, password } = req.body;
+    const { firstname, lastname, email, password, role } = req.body;
 
-    if (!fullname || !email || !password) {
-      return res.status(400).json({
-        message: "All Fields Required",
-        success: false,
-      });
+    if (!firstname || !lastname || !email || !password) {
+      return res
+        .status(400)
+        .json({ success: false, message: "All fields are required" });
     }
 
-    const user = await User.findOne({ email });
-
-    if (user) {
-      return res.status(400).json({
-        message: "User with email already exists with this email",
-        success: false,
-      });
-    }
+    const existingUser = await User.findOne({ email });
+    if (existingUser)
+      return res
+        .status(400)
+        .json({ success: false, message: "User already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const userRole =
+      role === "admin" ? "admin" : role === "mentor" ? "mentor" : "student";
 
-    await User.create({
-      fullname,
+    const user = await User.create({
+      firstname,
+      lastname,
       email,
       password: hashedPassword,
+      role: "student",
+      isPremium: userRole === "admin" ? true : false, // Admins are always premium
     });
 
-    return res.status(201).json({
-      message: "User created successfully!!",
-      success: true,
-    });
+    const token = generateToken(user._id);
+
+    res
+      .status(201)
+      .cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      })
+      .json({ success: true, message: "Account created successfully", user });
   } catch (error) {
-    console.log(error);
+    console.error("Register Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error during registration" });
   }
 };
 
+// ============================
+// 2. LOGIN
+// ============================
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password)
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and Password are required" });
 
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "Fields cannot be left empty!!",
-        success: false,
-      });
-    }
+    const user = await User.findOne({ email }).select("+password");
+    if (!user)
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
 
-    const user = await User.findOne({ email });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
 
-    if (!user) {
-      return res.status(400).json({
-        message: "Invalid User",
-        success: false,
-      });
-    }
+    const token = generateToken(user._id);
 
-    const isPasswordMatched = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordMatched) {
-      return res.status(400).json({
-        message: "Incorrect Email or Password",
-        success: false,
-      });
-    }
-
-    const tokenData = {
-      userID: user._id,
-    };
-
-    const token = await jwt.sign(tokenData, process.env.JWT_SECRET_KEY, {
-      expiresIn: "1d",
-    });
-
-    const loggedInUser = {
-      _id: user._id,
-      fullname: user.fullname,
-      email: user.email,
-      isPremium: user.isPremium
-    };
-
-    return res
-      .status(201)
+    res
+      .status(200)
       .cookie("token", token, {
-        maxAge: 1 * 24 * 60 * 60 * 1000,
         httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
       })
       .json({
-        message: `Welcome Back ${user.fullname}!!`,
         success: true,
-        loggedInUser,
+        message: `Welcome back, ${user.firstname}!`,
+        user,
       });
   } catch (error) {
-    console.log(error);
+    console.error("Login Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error during login" });
   }
 };
 
+// ============================
+// 3. LOGOUT
+// ============================
 export const logout = async (req, res) => {
   try {
-    return res.status(201).cookie("token", "", { maxAge: 0 }).json({
-      message: "Logged out successfully!!",
-      success: true,
-    });
+    res
+      .status(200)
+      .cookie("token", "", { httpOnly: true, expires: new Date(0) })
+      .json({ success: true, message: "Logged out successfully" });
   } catch (error) {
-    console.log(error);
+    console.error("Logout Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error during logout" });
   }
 };
 
+// ============================
+// 4. GET CURRENT USER
+// ============================
+export const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("-password");
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error("GetMe Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error fetching profile" });
+  }
+};
+
+// ============================
+// 5. BUY MEMBERSHIP
+// ============================
 export const buyMembership = async (req, res) => {
   try {
-    const { id } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
 
-    const user = await User.findById(id);
-
-    if (!user) {
-      return res.status(400).json({
-        message: "Invalid User",
-        success: false,
-      });
-    }
+    if (user.isPremium)
+      return res
+        .status(400)
+        .json({ success: false, message: "Already Premium" });
 
     user.isPremium = true;
+    user.membershipExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await user.save();
 
-    return res.status(200).json({
-      message: "Membership upgraded successfully",
-      success: true,
-      user,
-    });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Membership upgraded successfully",
+        user,
+      });
   } catch (error) {
-    console.error("Error upgrading membership:", error);
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false,
-    });
+    console.error("Membership Error:", error);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Server error during membership upgrade",
+      });
   }
-};
-
-// Get current user
- export const getMe = async (req, res) => {
-    res.json({ id: req.user._id, fullname: req.user.fullname, email: req.user.email, role: req.user.role });
 };

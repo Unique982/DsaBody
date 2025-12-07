@@ -125,8 +125,8 @@ export default function LandingPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [autorun, setAutorun] = useState(false);
 
-  const currentCode = files[currentFile].code;
-  const currentLanguage = files[currentFile].language;
+  const currentCode = (files as any)[currentFile].code;
+  const currentLanguage = (files as any)[currentFile].language;
 
   // Typing Animation
   useEffect(() => {
@@ -154,8 +154,8 @@ export default function LandingPage() {
 
   // Run Code Logic
   const runCode = useCallback(() => {
-    const codeToRun = files[currentFile].code;
-    const language = files[currentFile].language;
+    const codeToRun = (files as any)[currentFile].code;
+    const language = (files as any)[currentFile].language;
     setIsProcessing(true);
 
     if (language === "javascript") {
@@ -198,7 +198,7 @@ export default function LandingPage() {
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newCode = e.target.value;
-    setFiles((prev) => ({
+    setFiles((prev: any) => ({
       ...prev,
       [currentFile]: { ...prev[currentFile], code: newCode },
     }));
@@ -274,7 +274,7 @@ export default function LandingPage() {
                       : "text-gray-400 hover:bg-gray-700"
                   }`}
                 >
-                  {files[fileName].label}
+                  {(files as any)[fileName].label}
                 </button>
               ))}
             </div>
