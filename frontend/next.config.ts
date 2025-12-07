@@ -8,7 +8,6 @@ const nextConfig: NextConfig = {
       "cdn.pixabay.com",
       "images.unsplash.com",
       "i.imgur.com",
-      "example.com", // add more if needed
     ],
   },
 };
